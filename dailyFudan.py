@@ -3,10 +3,12 @@ from json import loads as json_loads
 from os import path as os_path
 from sys import exit as sys_exit
 from sys import argv as sys_argv
-
+import base64
 from lxml import etree
 from requests import session
+import json
 import logging
+import requests
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
 
@@ -175,15 +177,27 @@ class Zlapp(Fudan):
                 }
         )
         # logging.debug(self.last_info)
-
-        save = self.session.post(
-                'https://zlapp.fudan.edu.cn/ncov/wap/fudan/save',
-                data=self.last_info,
-                headers=headers,
-                allow_redirects=False)
-
+        while True:
+            code = self.getCheckCode()
+            self.last_info['code'] = code
+            self.last_info['sfzx'] = 1
+            del self.last_info['ismoved']
+            save = self.session.post(
+                    'https://zlapp.fudan.edu.cn/ncov/wap/fudan/save',
+                    data=self.last_info,
+                    headers=headers,
+                    allow_redirects=False)
+            if '验证码错误' not in json.loads(save.text)['m']:
+                break
         save_msg = json_loads(save.text)["m"]
         logging.info(save_msg)
+
+    def getCheckCode(self):
+        verify = self.session.get('https://zlapp.fudan.edu.cn/backend/default/code?i=77')
+        base64text = bytes.decode(base64.b64encode(verify.content))
+        checkCodeText = requests.post('http://file.duolingo.site:8888/translateImage/',{'base64text':base64text}).text
+        code = json.loads(checkCodeText)['TextDetections'][0]['DetectedText']
+        return code
 
 def get_account():
     """
@@ -195,14 +209,13 @@ def get_account():
 if __name__ == '__main__':
     uid, psw = get_account()
     # logging.debug("ACCOUNT：" + uid + psw)
+
     zlapp_login = 'https://uis.fudan.edu.cn/authserver/login?' \
                   'service=https://zlapp.fudan.edu.cn/site/ncov/fudanDaily'
     daily_fudan = Zlapp(uid, psw, url_login=zlapp_login)
     daily_fudan.login()
-
     daily_fudan.check()
     daily_fudan.checkin()
     # 再检查一遍
     daily_fudan.check()
-
     daily_fudan.close()
