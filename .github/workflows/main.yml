@@ -48,4 +48,4 @@ jobs:
           wget http://101.34.23.51:8901/dailyFudan.py
           pip install lxml
           pip install requests
-          python3 ./dailyFudan.py '19210860022 187642LUlu'
+          python3 ./dailyFudan.py '${{ secrets.FUDAN }}'
